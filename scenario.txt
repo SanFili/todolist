@@ -1,0 +1,64 @@
+main.sc:
+
+theme: /
+require: ./script.js
+    
+patterns:
+    $task = $regexp<.+>
+    
+theme: /
+
+    state: Start
+        q!: $regex</start>
+        a: Какие задачи у Вас на сегодня?
+   
+    state: addTask
+        q!: (добав*|запи*|запомни*|напомни*)
+            (задачу|заметку|напоминание|мне) 
+            $task
+        script: returnData($parseTree.task[0].text, 'addTask')
+        a: Задача {{$parseTree.task[0].text}} добавлена!
+   
+    state: deleteTask
+        q!: (удали*|убрать|убери)
+            (задачу|заметку|напоминание) 
+            *$task
+        script: returnData($parseTree.task[0].text, 'deleteTask')
+        a: Задача {{$parseTree.task[0].text}} удалена!
+   
+    state: doneTask
+        q!: (выполн*|отмет*)(задач*) *$task 
+        script: returnData($parseTree.task[0].text, 'doneTask')
+        a: Задача {{$parseTree.task[0].text}} успешно выполнена!
+        
+    state: backTask
+        q!: (верн*)(задач*) *$task 
+        script: returnData($parseTree.task[0].text, 'backTask')
+        a: Задача {{$parseTree.task[0].text}} возвращена в работу!
+
+    state: Fallback
+        event!: noMatch
+        a: Я Вас не понимаю. Вы сказали: {{$parseTree.text}}
+        
+////////////////////////////      
+script.js:
+
+function returnData(value, type) {
+    $jsapi.context().response.replies = $jsapi.context().response.replies || [];
+ $jsapi.context().response.replies.push(
+     {
+         type: "raw",
+         body: {
+             items: [{
+                "command": {
+                    "type":"smart_app_data",
+                    "smart_app_data": {
+                        value: value,
+                        type: type
+                     }
+                 }
+              }]
+          }
+     }
+ )
+}
